@@ -44,6 +44,11 @@
           </q-td>
         </q-tr>
       </template>
+
+
+      <template v-slot:top_right="props">
+        Hi top Right section.
+      </template>
     </q-grid>
   </q-page>
 </template>

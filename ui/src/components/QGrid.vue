@@ -181,7 +181,26 @@
         </template>
 
 
-        <template v-slot:top-right="props" v-if="excel_download || csv_download || fullscreen || global_search">
+        <template v-slot:top-right="props" v-if="excel_download || csv_download || fullscreen || global_search || groupby_filter">
+
+
+
+          <slot v-if="hasTopRightSlot"
+              name="top_right"
+              :excel_download="excel_download"
+              :csv_download="csv_download"
+              :fullscreen="fullscreen"
+              :global_search="global_search"
+              :groupby_filter="groupby_filter"
+              :toggleFullscreen="props.toggleFullscreen"
+              :inFullscreen="props.inFullscreen"
+              :exportTable="exportTable"
+              :gorupby_option="gorupby_option"
+              :selected_group_by_filed="selected_group_by_filed"
+              :filter="filter"
+          >
+          </slot>
+          <template v-else>
 
 
            <q-input filled v-if="global_search" borderless dense debounce="300" v-model="filter" class="q-mr-md"
@@ -222,7 +241,7 @@
                   v-close-popup
               >{{ props.inFullscreen ? 'Exit Fullscreen' : 'Toggle Fullscreen' }}</q-tooltip>
             </q-btn>
-
+          </template>
         </template>
 
         <template v-slot:body="props">
@@ -459,7 +478,26 @@
         </template>
 
 
-        <template v-slot:top-right="props" v-if="excel_download || csv_download || fullscreen || global_search">
+        <template v-slot:top-right="props" v-if="excel_download || csv_download || fullscreen || global_search || groupby_filter">
+
+
+
+         <slot v-if="hasTopRightSlot"
+              name="top_right"
+              :excel_download="excel_download"
+              :csv_download="csv_download"
+              :fullscreen="fullscreen"
+              :global_search="global_search"
+              :groupby_filter="groupby_filter"
+              :toggleFullscreen="props.toggleFullscreen"
+              :inFullscreen="props.inFullscreen"
+              :exportTable="exportTable"
+              :gorupby_option="gorupby_option"
+              :selected_group_by_filed="selected_group_by_filed"
+              :filter="filter"
+          >
+          </slot>
+          <template v-else>
 
 
            <q-input filled v-if="global_search" borderless dense debounce="300" v-model="filter" class="q-mr-md"
@@ -500,6 +538,7 @@
                   v-close-popup
               >{{ props.inFullscreen ? 'Exit Fullscreen' : 'Toggle Fullscreen' }}</q-tooltip>
             </q-btn>
+          </template>
 
         </template>
 
@@ -711,6 +750,9 @@ export default defineComponent({
     },
     hasDefaultSlot() {
       return this.$slots.hasOwnProperty("body");
+    },
+    hasTopRightSlot() {
+      return this.$slots.hasOwnProperty("top_right");
     },
     hasHeaderSlot() {
       return this.$slots.hasOwnProperty("header");

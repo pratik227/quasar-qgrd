@@ -17,6 +17,63 @@
           </q-th>
         </q-tr>
       </template>
+      <template v-slot:top_right="props">
+        {{props}}
+        <q-input
+          v-if="props.global_search"
+          v-model="props.filter"
+          filled
+          borderless
+          dense
+          debounce="300"
+          class="q-mr-md"
+          placeholder="Search"
+        >
+          <template v-slot:append>
+            <q-icon name="search"/>
+          </template>
+        </q-input>
+
+        <q-btn
+          v-if="props.excel_download"
+          class="bg-grey-2 q-mr-sm"
+          icon="fas fa-file-excel"
+          no-caps
+          @click="props.exportTable('xlsx')"
+        />
+
+        <q-btn
+          v-if="props.csv_download"
+          class="bg-primary text-white"
+          icon="fas fa-file-csv"
+          no-caps
+          @click="props.exportTable('csv')"
+        />
+
+        <q-select
+          v-if="props.groupby_filter"
+          class="q-mr-sm q-ml-sm"
+          outlined
+          dense
+          v-model="props.selected_group_by_filed"
+          :options="props.gorupby_option"
+          style="width: 150px;"
+        />
+
+<!--        <q-btn-->
+<!--          v-if="props.fullscreen"-->
+<!--          flat-->
+<!--          round-->
+<!--          dense-->
+<!--          class="q-ml-sm"-->
+<!--          :icon="props.inFullscreen ? 'fullscreen_exit' : 'fullscreen'"-->
+<!--          @click="props.toggleFullscreen"-->
+<!--        >-->
+<!--          <q-tooltip :disable="$q.platform.is.mobile" v-close-popup>-->
+<!--            {{ props.inFullscreen ? 'Exit Fullscreen' : 'Toggle Fullscreen' }}-->
+<!--          </q-tooltip>-->
+<!--        </q-btn>-->
+      </template>
     </q-grid>
     {{selected}}
   </q-page>
