@@ -70,7 +70,8 @@ module.exports = configure(function (ctx) {
       chainWebpack (chain) {
 
         chain.resolve.alias.merge({
-          examples: path.resolve(__dirname, './src/examples')
+          examples: path.resolve(__dirname, './src/examples'),
+          vue: path.resolve('./node_modules/vue')
         })
 
 
