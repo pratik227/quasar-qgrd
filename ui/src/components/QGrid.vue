@@ -412,6 +412,7 @@
 
               </q-select>
 
+              {{filter_data[col.field]}}
               <q-input v-if="col.hasOwnProperty('filter_type') && col.filter_type=='date'" dense color="teal"
                        class="q-pl-xs q-pr-xs" filled
                        :model-value="filter_data[col.field].from+(filter_data[col.field].from?'-':'')+filter_data[col.field].to">
@@ -660,6 +661,12 @@ export default defineComponent({
           }
           if (self.final_column[i].hasOwnProperty('filter_type') && self.final_column[i].filter_type == 'date') {
             let compareDate = moment(item[table_columns[i]], self.final_column[i].format)
+
+            let type_of_date = typeof self.filter_data[table_columns[i]]
+            if (type_of_date === 'string'){
+              self.filter_data[table_columns[i]] = {'from': self.filter_data[table_columns[i]], 'to': self.filter_data[table_columns[i]]}
+            }
+
             let startDate = moment(self.filter_data[table_columns[i]].from, 'YYYY/MM/DD')
             let endDate = moment(self.filter_data[table_columns[i]].to, 'YYYY/MM/DD')
             // const.js range = moment.range(startDate, endDate);
