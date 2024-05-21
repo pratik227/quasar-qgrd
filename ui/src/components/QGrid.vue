@@ -412,7 +412,6 @@
 
               </q-select>
 
-              {{filter_data[col.field]}}
               <q-input v-if="col.hasOwnProperty('filter_type') && col.filter_type=='date'" dense color="teal"
                        class="q-pl-xs q-pr-xs" filled
                        :model-value="filter_data[col.field].from+(filter_data[col.field].from?'-':'')+filter_data[col.field].to">
