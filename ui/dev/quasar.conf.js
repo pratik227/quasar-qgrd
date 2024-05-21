@@ -49,13 +49,15 @@ module.exports = function (ctx) {
         const ext = isServer ? 'common' : 'esm'
 
         chain.resolve.alias.merge({
-          ui: path.resolve(__dirname, `../src/index.${ext}.js`)
+          ui: path.resolve(__dirname, `../src/index.${ext}.js`),
+          vue: path.resolve('./node_modules/vue')
         })
 
         chain.plugin('define-ui')
           .use(webpack.DefinePlugin, [{
             __UI_VERSION__: `'${require('../package.json').version}'`
           }])
+
       }
     },
 
