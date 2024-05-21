@@ -214,6 +214,10 @@ const json = {
     "header": {
       "extends": "default",
       "desc": "Slot to define how a header row looks like; Suggestion: tr + th"
+    },
+    "top_right": {
+      "extends": "default",
+      "desc": "Slot to define a top right section"
     }
   },
   "General": {
