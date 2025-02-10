@@ -62,7 +62,6 @@
                           <template v-slot:option="scope">
                     <q-item
                         v-bind="scope.itemProps"
-                        v-on="scope.itemEvents"
                     >
                       <q-item-section avatar>
                         <q-checkbox v-model="column_options_selected[col.field]" :val="scope.opt.value" color="teal"/>
@@ -121,7 +120,6 @@
                           <template v-slot:option="scope">
                     <q-item
                         v-bind="scope.itemProps"
-                        v-on="scope.itemEvents"
                     >
                       <q-item-section avatar>
                         <q-checkbox v-model="column_options_selected[col.field]" :val="scope.opt.value" color="teal"/>
@@ -359,7 +357,6 @@
                           <template v-slot:option="scope">
                     <q-item
                         v-bind="scope.itemProps"
-                        v-on="scope.itemEvents"
                     >
                       <q-item-section avatar>
                         <q-checkbox v-model="column_options_selected[col.field]" :val="scope.opt.value" color="teal"/>
@@ -418,7 +415,6 @@
                           <template v-slot:option="scope">
                     <q-item
                         v-bind="scope.itemProps"
-                        v-on="scope.itemEvents"
                     >
                       <q-item-section avatar>
                         <q-checkbox v-model="column_options_selected[col.field]" :val="scope.opt.value" color="teal"/>

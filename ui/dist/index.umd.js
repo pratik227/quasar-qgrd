@@ -1,6 +1,6 @@
 /*!
- * quasar-ui-qgrid v1.0.18
- * (c) 2023 pratikpatelpp802@gmail.com
+ * quasar-ui-qgrid v1.0.30
+ * (c) 2025 pratikpatelpp802@gmail.com
  * Released under the MIT License.
  */
 
@@ -5429,7 +5429,7 @@
       function preprocessRFC2822(s) {
           // Remove comments and folding whitespace and replace multiple-spaces with a single space
           return s
-              .replace(/\([^)]*\)|[\n\t]/g, ' ')
+              .replace(/\([^()]*\)|[\n\t]/g, ' ')
               .replace(/(\s\s+)/g, ' ')
               .replace(/^\s\s*/, '')
               .replace(/\s\s*$/, '');
@@ -8604,7 +8604,7 @@
 
       //! moment.js
 
-      hooks.version = '2.29.2';
+      hooks.version = '2.29.4';
 
       setHookCallback(createLocal);
 
@@ -8657,13 +8657,15 @@
     __proto__: null
   });
 
-  function wrapCsvValue(val, formatFn) {
+  function wrapCsvValue (val, formatFn, row) {
     var formatted = formatFn !== void 0
-        ? formatFn(val)
-        : val;
+      ? formatFn(val, row)
+      : val;
+
     formatted = formatted === void 0 || formatted === null
-        ? ''
-        : String(formatted);
+      ? ''
+      : String(formatted);
+
     formatted = formatted.split('"').join('""');
     /**
      * Excel accepts \n and \r in strings, but some other CSV parsers do not
@@ -8671,12 +8673,14 @@
      */
     // .split('\n').join('\\n')
     // .split('\r').join('\\r')
+
     return ("\"" + formatted + "\"")
   }
 
+
   var script = vue.defineComponent({
     name: "QGrid",
-    props: ['data', 'columns', 'file_name', 'csv_download', 'excel_download', 'columns_filter', 'header_filter', 'draggable', 'draggable_columns', 'classes', 'separator', 'dense', 'dark', 'flat', 'bordered', 'square', 'selection', 'selected', 'fullscreen', 'global_search', 'groupby_filter', 'visible_columns', 'pagination', 'loading', 'row_key', 'global_filter','ssr_pagination'],
+    props: ['data', 'columns', 'file_name', 'csv_download', 'excel_download', 'columns_filter', 'header_filter', 'draggable', 'draggable_columns', 'classes', 'separator', 'dense', 'dark', 'flat', 'bordered', 'square', 'selection', 'selected', 'fullscreen', 'global_search', 'groupby_filter', 'visible_columns', 'pagination', 'loading', 'row_key', 'global_filter','ssr_pagination', 'ignore_rows', 'ignore_cols'],
     setup: function setup(props) {
 
       // onMounted(()=>{
@@ -8744,6 +8748,12 @@
             }
             if (self.final_column[i].hasOwnProperty('filter_type') && self.final_column[i].filter_type == 'date') {
               var compareDate = moment(item[table_columns[i]], self.final_column[i].format);
+
+              var type_of_date = typeof self.filter_data[table_columns[i]];
+              if (type_of_date === 'string'){
+                self.filter_data[table_columns[i]] = {'from': self.filter_data[table_columns[i]], 'to': self.filter_data[table_columns[i]]};
+              }
+
               var startDate = moment(self.filter_data[table_columns[i]].from, 'YYYY/MM/DD');
               var endDate = moment(self.filter_data[table_columns[i]].to, 'YYYY/MM/DD');
               // const.js range = moment.range(startDate, endDate);
@@ -8784,10 +8794,14 @@
           });
           this.sub_grouped_data = grouped_data;
         }
+        this.$emit("FilteredData", table_Data);
         return table_Data;
       },
       hasDefaultSlot: function hasDefaultSlot() {
         return this.$slots.hasOwnProperty("body");
+      },
+      hasTopRightSlot: function hasTopRightSlot() {
+        return this.$slots.hasOwnProperty("top_right");
       },
       hasHeaderSlot: function hasHeaderSlot() {
         return this.$slots.hasOwnProperty("header");
@@ -8891,31 +8905,34 @@
         });
         return column_option
       },
-      exportTable: function exportTable(type) {
-        var this$1$1 = this;
+      exportTable: function exportTable () {
+          var this$1$1 = this;
 
-        // naive encoding to csv format
-        var content = [this.columns.map(function (col) { return wrapCsvValue(col.label); })].concat(
+          // naive encoding to csv format
+          var content = [this.columns.map(function (col) { return wrapCsvValue(col.label); })].concat(
             this.data.map(function (row) { return this$1$1.columns.map(function (col) { return wrapCsvValue(
-                typeof col.field === 'function'
-                    ? col.field(row)
-                    : row[col.field === void 0 ? col.name : col.field],
-                col.format
+              typeof col.field === 'function'
+                ? col.field(row)
+                : row[ col.field === void 0 ? col.name : col.field ],
+              col.format,
+              row
             ); }).join(','); })
-        ).join('\r\n');
-        var status = quasar.exportFile(
-            this.file_name + '.' + type,
+          ).join('\r\n');
+
+          var status = quasar.exportFile(
+            'table-export.csv',
             content,
-            'text/' + type
-        );
-        if (status !== true) {
-          this.$q.notify({
-            message: 'Browser denied file download...',
-            color: 'negative',
-            icon: 'warning'
-          });
-        }
-      },
+            'text/csv'
+          );
+
+          if (status !== true) {
+            this.$q.notify({
+              message: 'Browser denied file download...',
+              color: 'negative',
+              icon: 'warning'
+            });
+          }
+        },
       groupBy: function groupBy(array, key) {
         var result = {};
         array.forEach(function (item) {
@@ -8947,14 +8964,15 @@
             });
             // }
           },
+          filter: ".ignore-elements",
           onMove: function (/**Event*/evt, /**Event*/originalEvent) {
-            if (evt.related.className == 'ignore-elements q-tr') {
+            if (evt.related.className.includes('ignore-elements')) {
               return false
             }
           },
         });
         Sortable.create(element2, {
-          // filter:'.ignore-elements',
+          filter:'.ignore-elements',
           // preventOnFilter: true,
           disabled: !this.draggable_columns,
           onEnd: function onEnd(event) {
@@ -8977,7 +8995,7 @@
             });
           },
           onMove: function (/**Event*/evt, /**Event*/originalEvent) {
-            if (evt.related.className == 'q-table--col-auto-width ignore-elements') {
+            if (evt.related.className.includes('ignore-elements')) {
               return false
             }
           },
@@ -9003,7 +9021,7 @@
         }
       }
     },
-    emits: ['selected-val', 'dragged_column', 'row-click', 'OnRequest']
+    emits: ['selected-val', 'dragged_column', 'row-click', 'OnRequest', 'FilteredData', 'dragged_row']
   });
 
   var _hoisted_1 = { class: "row inline" };
@@ -9096,7 +9114,8 @@
                     return (vue.openBlock(), vue.createBlock(_component_q_th, {
                       props: props,
                       onHover: _cache[1] || (_cache[1] = vue.withModifiers(function () {}, ["stop"])),
-                      key: col.name
+                      key: col.name,
+                      class: vue.normalizeClass(_ctx.ignore_cols && _ctx.ignore_cols.includes(props.cols.indexOf(col))?'ignore-elements':'')
                     }, {
                       default: vue.withCtx(function () { return [
                         vue.createElementVNode("div", _hoisted_1, [
@@ -9171,7 +9190,7 @@
                                               }, 1024)
                                             ]; }),
                                             option: vue.withCtx(function (scope) { return [
-                                              vue.createVNode(_component_q_item, vue.mergeProps(scope.itemProps, vue.toHandlers(scope.itemEvents)), {
+                                              vue.createVNode(_component_q_item, vue.normalizeProps(vue.guardReactiveProps(scope.itemProps)), {
                                                 default: vue.withCtx(function () { return [
                                                   vue.createVNode(_component_q_item_section, { avatar: "" }, {
                                                     default: vue.withCtx(function () { return [
@@ -9220,7 +9239,7 @@
                         ])
                       ]; }),
                       _: 2
-                    }, 1032, ["props"]))
+                    }, 1032, ["props", "class"]))
                   }), 128))
                 ]; }),
                 _: 2
@@ -9322,7 +9341,7 @@
                                     }, 1024)
                                   ]; }),
                                   option: vue.withCtx(function (scope) { return [
-                                    vue.createVNode(_component_q_item, vue.mergeProps(scope.itemProps, vue.toHandlers(scope.itemEvents)), {
+                                    vue.createVNode(_component_q_item, vue.normalizeProps(vue.guardReactiveProps(scope.itemProps)), {
                                       default: vue.withCtx(function () { return [
                                         vue.createVNode(_component_q_item_section, { avatar: "" }, {
                                           default: vue.withCtx(function () { return [
@@ -9486,7 +9505,8 @@
                 ? (vue.openBlock(), vue.createBlock(_component_q_tr, {
                     key: 0,
                     props: props,
-                    onClick: function ($event) { return (_ctx.rowClick(props.row)); }
+                    onClick: function ($event) { return (_ctx.rowClick(props.row)); },
+                    class: vue.normalizeClass(_ctx.ignore_rows && _ctx.ignore_rows.includes(_ctx.getFilteredValuesData.indexOf(props.row))?'ignore-elements':'')
                   }, {
                     default: vue.withCtx(function () { return [
                       (_ctx.selection_prop!='none')
@@ -9526,7 +9546,7 @@
                       }), 128))
                     ]; }),
                     _: 2
-                  }, 1032, ["props", "onClick"]))
+                  }, 1032, ["props", "onClick", "class"]))
                 : vue.createCommentVNode("", true),
               (_ctx.groupby_filter &&  _ctx.selected_group_by_filed.value!='')
                 ? vue.withDirectives((vue.openBlock(), vue.createBlock(_component_q_tr, {
@@ -9606,83 +9626,100 @@
             ]; }),
             _: 2
           }, [
-            (_ctx.excel_download || _ctx.csv_download || _ctx.fullscreen || _ctx.global_search)
+            (_ctx.excel_download || _ctx.csv_download || _ctx.fullscreen || _ctx.global_search || _ctx.groupby_filter)
               ? {
                   name: "top-right",
                   fn: vue.withCtx(function (props) { return [
-                    (_ctx.global_search)
-                      ? (vue.openBlock(), vue.createBlock(_component_q_input, {
+                    (_ctx.hasTopRightSlot)
+                      ? vue.renderSlot(_ctx.$slots, "top_right", {
                           key: 0,
-                          filled: "",
-                          borderless: "",
-                          dense: "",
-                          debounce: "300",
-                          modelValue: _ctx.filter,
-                          "onUpdate:modelValue": _cache[2] || (_cache[2] = function ($event) { return ((_ctx.filter) = $event); }),
-                          class: "q-mr-md",
-                          placeholder: "Search"
-                        }, {
-                          append: vue.withCtx(function () { return [
-                            vue.createVNode(_component_q_icon, { name: "search" })
-                          ]; }),
-                          _: 1
-                        }, 8, ["modelValue"]))
-                      : vue.createCommentVNode("", true),
-                    (_ctx.excel_download)
-                      ? (vue.openBlock(), vue.createBlock(_component_q_btn, {
-                          key: 1,
-                          class: "bg-grey-2 q-mr-sm",
-                          icon: "fas fa-file-excel",
-                          "no-caps": "",
-                          onClick: _cache[3] || (_cache[3] = function ($event) { return (_ctx.exportTable('xlsx')); })
-                        }))
-                      : vue.createCommentVNode("", true),
-                    (_ctx.csv_download)
-                      ? (vue.openBlock(), vue.createBlock(_component_q_btn, {
-                          key: 2,
-                          class: "bg-primary text-white",
-                          icon: "fas fa-file-csv",
-                          "no-caps": "",
-                          onClick: _cache[4] || (_cache[4] = function ($event) { return (_ctx.exportTable('csv')); })
-                        }))
-                      : vue.createCommentVNode("", true),
-                    (_ctx.groupby_filter)
-                      ? (vue.openBlock(), vue.createBlock(_component_q_select, {
-                          key: 3,
-                          class: "q-mr-sm q-ml-sm",
-                          outlined: "",
-                          dense: "",
-                          modelValue: _ctx.selected_group_by_filed,
-                          "onUpdate:modelValue": _cache[5] || (_cache[5] = function ($event) { return ((_ctx.selected_group_by_filed) = $event); }),
-                          options: _ctx.gorupby_option,
-                          style: {"width":"150px"}
-                        }, null, 8, ["modelValue", "options"]))
-                      : vue.createCommentVNode("", true),
-                    (_ctx.fullscreen)
-                      ? (vue.openBlock(), vue.createBlock(_component_q_btn, {
-                          key: 4,
-                          flat: "",
-                          round: "",
-                          class: "q-ml-sm",
-                          dense: "",
-                          icon: props.inFullscreen ? 'fullscreen_exit' : 'fullscreen',
-                          onClick: props.toggleFullscreen
-                        }, {
-                          default: vue.withCtx(function () { return [
-                            vue.withDirectives((vue.openBlock(), vue.createBlock(_component_q_tooltip, {
-                              disable: _ctx.$q.platform.is.mobile
-                            }, {
-                              default: vue.withCtx(function () { return [
-                                vue.createTextVNode(vue.toDisplayString(props.inFullscreen ? 'Exit Fullscreen' : 'Toggle Fullscreen'), 1)
-                              ]; }),
-                              _: 2
-                            }, 1032, ["disable"])), [
-                              [_directive_close_popup]
-                            ])
-                          ]; }),
-                          _: 2
-                        }, 1032, ["icon", "onClick"]))
-                      : vue.createCommentVNode("", true)
+                          excel_download: _ctx.excel_download,
+                          csv_download: _ctx.csv_download,
+                          fullscreen: _ctx.fullscreen,
+                          global_search: _ctx.global_search,
+                          groupby_filter: _ctx.groupby_filter,
+                          toggleFullscreen: props.toggleFullscreen,
+                          inFullscreen: props.inFullscreen,
+                          exportTable: _ctx.exportTable,
+                          gorupby_option: _ctx.gorupby_option,
+                          selected_group_by_filed: _ctx.selected_group_by_filed,
+                          filter: _ctx.filter
+                        })
+                      : (vue.openBlock(), vue.createElementBlock(vue.Fragment, { key: 1 }, [
+                          (_ctx.global_search)
+                            ? (vue.openBlock(), vue.createBlock(_component_q_input, {
+                                key: 0,
+                                filled: "",
+                                borderless: "",
+                                dense: "",
+                                debounce: "300",
+                                modelValue: _ctx.filter,
+                                "onUpdate:modelValue": _cache[2] || (_cache[2] = function ($event) { return ((_ctx.filter) = $event); }),
+                                class: "q-mr-md",
+                                placeholder: "Search"
+                              }, {
+                                append: vue.withCtx(function () { return [
+                                  vue.createVNode(_component_q_icon, { name: "search" })
+                                ]; }),
+                                _: 1
+                              }, 8, ["modelValue"]))
+                            : vue.createCommentVNode("", true),
+                          (_ctx.excel_download)
+                            ? (vue.openBlock(), vue.createBlock(_component_q_btn, {
+                                key: 1,
+                                class: "bg-grey-2 q-mr-sm",
+                                icon: "fas fa-file-excel",
+                                "no-caps": "",
+                                onClick: _cache[3] || (_cache[3] = function ($event) { return (_ctx.exportTable('xlsx')); })
+                              }))
+                            : vue.createCommentVNode("", true),
+                          (_ctx.csv_download)
+                            ? (vue.openBlock(), vue.createBlock(_component_q_btn, {
+                                key: 2,
+                                class: "bg-primary text-white",
+                                icon: "fas fa-file-csv",
+                                "no-caps": "",
+                                onClick: _cache[4] || (_cache[4] = function ($event) { return (_ctx.exportTable('csv')); })
+                              }))
+                            : vue.createCommentVNode("", true),
+                          (_ctx.groupby_filter)
+                            ? (vue.openBlock(), vue.createBlock(_component_q_select, {
+                                key: 3,
+                                class: "q-mr-sm q-ml-sm",
+                                outlined: "",
+                                dense: "",
+                                modelValue: _ctx.selected_group_by_filed,
+                                "onUpdate:modelValue": _cache[5] || (_cache[5] = function ($event) { return ((_ctx.selected_group_by_filed) = $event); }),
+                                options: _ctx.gorupby_option,
+                                style: {"width":"150px"}
+                              }, null, 8, ["modelValue", "options"]))
+                            : vue.createCommentVNode("", true),
+                          (_ctx.fullscreen)
+                            ? (vue.openBlock(), vue.createBlock(_component_q_btn, {
+                                key: 4,
+                                flat: "",
+                                round: "",
+                                class: "q-ml-sm",
+                                dense: "",
+                                icon: props.inFullscreen ? 'fullscreen_exit' : 'fullscreen',
+                                onClick: props.toggleFullscreen
+                              }, {
+                                default: vue.withCtx(function () { return [
+                                  vue.withDirectives((vue.openBlock(), vue.createBlock(_component_q_tooltip, {
+                                    disable: _ctx.$q.platform.is.mobile
+                                  }, {
+                                    default: vue.withCtx(function () { return [
+                                      vue.createTextVNode(vue.toDisplayString(props.inFullscreen ? 'Exit Fullscreen' : 'Toggle Fullscreen'), 1)
+                                    ]; }),
+                                    _: 2
+                                  }, 1032, ["disable"])), [
+                                    [_directive_close_popup]
+                                  ])
+                                ]; }),
+                                _: 2
+                              }, 1032, ["icon", "onClick"]))
+                            : vue.createCommentVNode("", true)
+                        ], 64))
                   ]; })
                 }
               : undefined,
@@ -9743,7 +9780,8 @@
                     return (vue.openBlock(), vue.createBlock(_component_q_th, {
                       props: props,
                       onHover: _cache[9] || (_cache[9] = vue.withModifiers(function () {}, ["stop"])),
-                      key: col.name
+                      key: col.name,
+                      class: vue.normalizeClass(_ctx.ignore_cols && _ctx.ignore_cols.includes(props.cols.indexOf(col))?'ignore-elements':'')
                     }, {
                       default: vue.withCtx(function () { return [
                         vue.createElementVNode("div", _hoisted_7, [
@@ -9818,7 +9856,7 @@
                                               }, 1024)
                                             ]; }),
                                             option: vue.withCtx(function (scope) { return [
-                                              vue.createVNode(_component_q_item, vue.mergeProps(scope.itemProps, vue.toHandlers(scope.itemEvents)), {
+                                              vue.createVNode(_component_q_item, vue.normalizeProps(vue.guardReactiveProps(scope.itemProps)), {
                                                 default: vue.withCtx(function () { return [
                                                   vue.createVNode(_component_q_item_section, { avatar: "" }, {
                                                     default: vue.withCtx(function () { return [
@@ -9867,7 +9905,7 @@
                         ])
                       ]; }),
                       _: 2
-                    }, 1032, ["props"]))
+                    }, 1032, ["props", "class"]))
                   }), 128))
                 ]; }),
                 _: 2
@@ -9969,7 +10007,7 @@
                                     }, 1024)
                                   ]; }),
                                   option: vue.withCtx(function (scope) { return [
-                                    vue.createVNode(_component_q_item, vue.mergeProps(scope.itemProps, vue.toHandlers(scope.itemEvents)), {
+                                    vue.createVNode(_component_q_item, vue.normalizeProps(vue.guardReactiveProps(scope.itemProps)), {
                                       default: vue.withCtx(function () { return [
                                         vue.createVNode(_component_q_item_section, { avatar: "" }, {
                                           default: vue.withCtx(function () { return [
@@ -10133,7 +10171,8 @@
                 ? (vue.openBlock(), vue.createBlock(_component_q_tr, {
                     key: 0,
                     props: props,
-                    onClick: function ($event) { return (_ctx.rowClick(props.row)); }
+                    onClick: function ($event) { return (_ctx.rowClick(props.row)); },
+                    class: vue.normalizeClass(_ctx.ignore_rows && _ctx.ignore_rows.includes(_ctx.getFilteredValuesData.indexOf(props.row))?'ignore-elements':'')
                   }, {
                     default: vue.withCtx(function () { return [
                       (_ctx.selection_prop!='none')
@@ -10173,7 +10212,7 @@
                       }), 128))
                     ]; }),
                     _: 2
-                  }, 1032, ["props", "onClick"]))
+                  }, 1032, ["props", "onClick", "class"]))
                 : vue.createCommentVNode("", true),
               (_ctx.groupby_filter &&  _ctx.selected_group_by_filed.value!='')
                 ? vue.withDirectives((vue.openBlock(), vue.createBlock(_component_q_tr, {
@@ -10253,83 +10292,100 @@
             ]; }),
             _: 2
           }, [
-            (_ctx.excel_download || _ctx.csv_download || _ctx.fullscreen || _ctx.global_search)
+            (_ctx.excel_download || _ctx.csv_download || _ctx.fullscreen || _ctx.global_search || _ctx.groupby_filter)
               ? {
                   name: "top-right",
                   fn: vue.withCtx(function (props) { return [
-                    (_ctx.global_search)
-                      ? (vue.openBlock(), vue.createBlock(_component_q_input, {
+                    (_ctx.hasTopRightSlot)
+                      ? vue.renderSlot(_ctx.$slots, "top_right", {
                           key: 0,
-                          filled: "",
-                          borderless: "",
-                          dense: "",
-                          debounce: "300",
-                          modelValue: _ctx.filter,
-                          "onUpdate:modelValue": _cache[10] || (_cache[10] = function ($event) { return ((_ctx.filter) = $event); }),
-                          class: "q-mr-md",
-                          placeholder: "Search"
-                        }, {
-                          append: vue.withCtx(function () { return [
-                            vue.createVNode(_component_q_icon, { name: "search" })
-                          ]; }),
-                          _: 1
-                        }, 8, ["modelValue"]))
-                      : vue.createCommentVNode("", true),
-                    (_ctx.excel_download)
-                      ? (vue.openBlock(), vue.createBlock(_component_q_btn, {
-                          key: 1,
-                          class: "bg-grey-2 q-mr-sm",
-                          icon: "fas fa-file-excel",
-                          "no-caps": "",
-                          onClick: _cache[11] || (_cache[11] = function ($event) { return (_ctx.exportTable('xlsx')); })
-                        }))
-                      : vue.createCommentVNode("", true),
-                    (_ctx.csv_download)
-                      ? (vue.openBlock(), vue.createBlock(_component_q_btn, {
-                          key: 2,
-                          class: "bg-primary text-white",
-                          icon: "fas fa-file-csv",
-                          "no-caps": "",
-                          onClick: _cache[12] || (_cache[12] = function ($event) { return (_ctx.exportTable('csv')); })
-                        }))
-                      : vue.createCommentVNode("", true),
-                    (_ctx.groupby_filter)
-                      ? (vue.openBlock(), vue.createBlock(_component_q_select, {
-                          key: 3,
-                          class: "q-mr-sm q-ml-sm",
-                          outlined: "",
-                          dense: "",
-                          modelValue: _ctx.selected_group_by_filed,
-                          "onUpdate:modelValue": _cache[13] || (_cache[13] = function ($event) { return ((_ctx.selected_group_by_filed) = $event); }),
-                          options: _ctx.gorupby_option,
-                          style: {"width":"150px"}
-                        }, null, 8, ["modelValue", "options"]))
-                      : vue.createCommentVNode("", true),
-                    (_ctx.fullscreen)
-                      ? (vue.openBlock(), vue.createBlock(_component_q_btn, {
-                          key: 4,
-                          flat: "",
-                          round: "",
-                          class: "q-ml-sm",
-                          dense: "",
-                          icon: props.inFullscreen ? 'fullscreen_exit' : 'fullscreen',
-                          onClick: props.toggleFullscreen
-                        }, {
-                          default: vue.withCtx(function () { return [
-                            vue.withDirectives((vue.openBlock(), vue.createBlock(_component_q_tooltip, {
-                              disable: _ctx.$q.platform.is.mobile
-                            }, {
-                              default: vue.withCtx(function () { return [
-                                vue.createTextVNode(vue.toDisplayString(props.inFullscreen ? 'Exit Fullscreen' : 'Toggle Fullscreen'), 1)
-                              ]; }),
-                              _: 2
-                            }, 1032, ["disable"])), [
-                              [_directive_close_popup]
-                            ])
-                          ]; }),
-                          _: 2
-                        }, 1032, ["icon", "onClick"]))
-                      : vue.createCommentVNode("", true)
+                          excel_download: _ctx.excel_download,
+                          csv_download: _ctx.csv_download,
+                          fullscreen: _ctx.fullscreen,
+                          global_search: _ctx.global_search,
+                          groupby_filter: _ctx.groupby_filter,
+                          toggleFullscreen: props.toggleFullscreen,
+                          inFullscreen: props.inFullscreen,
+                          exportTable: _ctx.exportTable,
+                          gorupby_option: _ctx.gorupby_option,
+                          selected_group_by_filed: _ctx.selected_group_by_filed,
+                          filter: _ctx.filter
+                        })
+                      : (vue.openBlock(), vue.createElementBlock(vue.Fragment, { key: 1 }, [
+                          (_ctx.global_search)
+                            ? (vue.openBlock(), vue.createBlock(_component_q_input, {
+                                key: 0,
+                                filled: "",
+                                borderless: "",
+                                dense: "",
+                                debounce: "300",
+                                modelValue: _ctx.filter,
+                                "onUpdate:modelValue": _cache[10] || (_cache[10] = function ($event) { return ((_ctx.filter) = $event); }),
+                                class: "q-mr-md",
+                                placeholder: "Search"
+                              }, {
+                                append: vue.withCtx(function () { return [
+                                  vue.createVNode(_component_q_icon, { name: "search" })
+                                ]; }),
+                                _: 1
+                              }, 8, ["modelValue"]))
+                            : vue.createCommentVNode("", true),
+                          (_ctx.excel_download)
+                            ? (vue.openBlock(), vue.createBlock(_component_q_btn, {
+                                key: 1,
+                                class: "bg-grey-2 q-mr-sm",
+                                icon: "fas fa-file-excel",
+                                "no-caps": "",
+                                onClick: _cache[11] || (_cache[11] = function ($event) { return (_ctx.exportTable('xlsx')); })
+                              }))
+                            : vue.createCommentVNode("", true),
+                          (_ctx.csv_download)
+                            ? (vue.openBlock(), vue.createBlock(_component_q_btn, {
+                                key: 2,
+                                class: "bg-primary text-white",
+                                icon: "fas fa-file-csv",
+                                "no-caps": "",
+                                onClick: _cache[12] || (_cache[12] = function ($event) { return (_ctx.exportTable('csv')); })
+                              }))
+                            : vue.createCommentVNode("", true),
+                          (_ctx.groupby_filter)
+                            ? (vue.openBlock(), vue.createBlock(_component_q_select, {
+                                key: 3,
+                                class: "q-mr-sm q-ml-sm",
+                                outlined: "",
+                                dense: "",
+                                modelValue: _ctx.selected_group_by_filed,
+                                "onUpdate:modelValue": _cache[13] || (_cache[13] = function ($event) { return ((_ctx.selected_group_by_filed) = $event); }),
+                                options: _ctx.gorupby_option,
+                                style: {"width":"150px"}
+                              }, null, 8, ["modelValue", "options"]))
+                            : vue.createCommentVNode("", true),
+                          (_ctx.fullscreen)
+                            ? (vue.openBlock(), vue.createBlock(_component_q_btn, {
+                                key: 4,
+                                flat: "",
+                                round: "",
+                                class: "q-ml-sm",
+                                dense: "",
+                                icon: props.inFullscreen ? 'fullscreen_exit' : 'fullscreen',
+                                onClick: props.toggleFullscreen
+                              }, {
+                                default: vue.withCtx(function () { return [
+                                  vue.withDirectives((vue.openBlock(), vue.createBlock(_component_q_tooltip, {
+                                    disable: _ctx.$q.platform.is.mobile
+                                  }, {
+                                    default: vue.withCtx(function () { return [
+                                      vue.createTextVNode(vue.toDisplayString(props.inFullscreen ? 'Exit Fullscreen' : 'Toggle Fullscreen'), 1)
+                                    ]; }),
+                                    _: 2
+                                  }, 1032, ["disable"])), [
+                                    [_directive_close_popup]
+                                  ])
+                                ]; }),
+                                _: 2
+                              }, 1032, ["icon", "onClick"]))
+                            : vue.createCommentVNode("", true)
+                        ], 64))
                   ]; })
                 }
               : undefined,
@@ -10348,7 +10404,7 @@
   script.render = render;
 
   var name = "quasar-ui-qgrid";
-  var version$1 = "1.0.18";
+  var version$1 = "1.0.30";
   var author = "pratikpatelpp802@gmail.com";
   var description = "QGrid";
   var license = "MIT";
@@ -10363,6 +10419,10 @@
   	"dev:electron": "cd dev && yarn 'dev:electron' && cd ..",
   	build: "node build/index.js",
   	"build:js": "node build/script.javascript.js"
+  };
+  var funding = {
+  	type: "github",
+  	url: "https://github.com/sponsors/pratik227"
   };
   var repository = {
   	type: "git",
@@ -10410,6 +10470,7 @@
   	module: module$1,
   	main: main,
   	scripts: scripts,
+  	funding: funding,
   	repository: repository,
   	dependencies: dependencies,
   	bugs: bugs,
